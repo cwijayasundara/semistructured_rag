@@ -1,0 +1,6 @@
+python-dotenv
+langchain-openai
+langchain_community
+chromadb
+unstructured[all-docs]
+streamlit
