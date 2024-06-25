@@ -7,14 +7,18 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain import hub
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 warnings.filterwarnings('ignore')
 _ = load_dotenv()
 
-loader = UnstructuredExcelLoader("../docs/Complex_Order_Customer_Details.xlsx",
+loader = UnstructuredExcelLoader("../docs/nvidia_quarterly_revenue_trend_by_market.xlsx",
                                  mode="elements",
-                                 infer_table_structure=True,)
+                                 infer_table_structure=True,
+                                 chunking_strategy="by_title",
+                                 max_characters=4096,
+                                 new_after_n_chars=3800,
+                                 combine_text_under_n_chars=2000)
+
 docs = loader.load()
 
 # export the documents to a markdown file
@@ -23,14 +27,9 @@ for doc in docs:
         content_metadata = doc.page_content + "\n\n" + str(doc.metadata)
         f.write(content_metadata)
 
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024,
-                                               chunk_overlap=200)
+documents = filter_complex_metadata(docs)
 
-splits = text_splitter.split_documents(docs)
-
-documents = filter_complex_metadata(splits)
-
-vectorstore = Chroma.from_documents(documents=splits,
+vectorstore = Chroma.from_documents(documents=docs,
                                     embedding=OpenAIEmbeddings())
 
 retriever = vectorstore.as_retriever()
