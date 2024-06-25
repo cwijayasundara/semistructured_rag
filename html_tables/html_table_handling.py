@@ -16,7 +16,8 @@ _ = load_dotenv()
 
 filename = "../docs/nvidia_financial_results_q1_fiscal_2025.html"
 
-html_elements = partition_html(filename=filename)
+html_elements = partition_html(filename=filename,
+                               max_characters=4096)
 
 elements = chunk_by_title(html_elements)
 

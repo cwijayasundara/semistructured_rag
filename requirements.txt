@@ -4,3 +4,5 @@ langchain_community
 chromadb
 unstructured[all-docs]
 streamlit
+llama-index
+llama-parse
