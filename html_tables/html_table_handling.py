@@ -8,7 +8,6 @@ from unstructured.partition.html import partition_html
 from langchain_openai import ChatOpenAI
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
-from unstructured.chunking.title import chunk_by_title
 from langchain_community.vectorstores.utils import filter_complex_metadata
 
 warnings.filterwarnings('ignore')
@@ -17,15 +16,17 @@ _ = load_dotenv()
 filename = "../docs/nvidia_financial_results_q1_fiscal_2025.html"
 
 html_elements = partition_html(filename=filename,
-                               max_characters=4096)
-
-elements = chunk_by_title(html_elements)
+                               chunking_strategy="by_title",
+                               max_characters=4096,
+                               new_after_n_chars=3800,
+                               combine_text_under_n_chars=2000)
 
 
 documents = []
-for element in elements:
+for element in html_elements:
     metadata = element.metadata.to_dict()
     del metadata["languages"]
+    del metadata["orig_elements"]
     metadata["source"] = metadata["filename"]
     documents.append(Document(page_content=element.text, metadata=metadata))
 
