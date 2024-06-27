@@ -52,9 +52,8 @@ for idx, table in enumerate(tables):
 
 documents = []
 for text in text_to_embed:
-    # if text is a type of list, then convert it to a string
-    if isinstance(text, list):
-        text = ' '.join(text)
+    if text: text = [t for t in text if t is not None or t != '']
+    text = ' '.join(text)
     documents.append(Document(page_content=text))
 
 embeddings = OpenAIEmbeddings()
@@ -66,4 +65,3 @@ query = "$2,501"
 retriever = vectorstore.as_retriever()
 result = retriever.invoke(query, k=4)
 print(result)
-
