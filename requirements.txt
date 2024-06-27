@@ -6,7 +6,6 @@ unstructured[all-docs]
 streamlit
 llama-index
 llama-parse
-cassio>=0.1.7
 pinecone-client
 pinecone-text
-pinecone-notebooks
+bs4

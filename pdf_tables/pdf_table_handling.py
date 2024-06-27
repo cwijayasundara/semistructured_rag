@@ -1,18 +1,17 @@
 from dotenv import load_dotenv
 import warnings
-from langchain_community.vectorstores.utils import filter_complex_metadata
+from langchain_core.documents import Document
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
+from unstructured.staging.base import dict_to_elements
 from unstructured_client import UnstructuredClient
 from unstructured_client.models import shared
 from unstructured_client.models.errors import SDKError
-from unstructured.staging.base import dict_to_elements
-from Utils import Utils
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
-from langchain_openai import ChatOpenAI
-from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
-from langchain_core.documents import Document
+from Utils import Utils
+from langchain_community.vectorstores import Chroma
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
 
 warnings.filterwarnings('ignore')
 
@@ -28,49 +27,59 @@ s = UnstructuredClient(
     server_url=DLAI_API_URL,
 )
 
+# filename = "../docs/embedded-images-tables.pdf"
 filename = "../docs/NVIDIAAn.pdf"
 
 with open(filename, "rb") as f:
-    files=shared.Files(
+    files = shared.Files(
         content=f.read(),
         file_name=filename,
     )
 
 req = shared.PartitionParameters(
     files=files,
-    strategy="fast",
+    strategy="hi_res",
+    chunking_strategy="by_title",
     hi_res_model_name="yolox",
-    pdf_infer_table_structure=True,
     skip_infer_table_types=[],
+    pdf_infer_table_structure=True,
 )
 
 try:
     resp = s.general.partition(req)
-    pdf_elements = dict_to_elements(resp.elements)
+    elements = dict_to_elements(resp.elements)
 except SDKError as e:
     print(e)
 
+
+tables = [el for el in elements if el.category == "Table"]
+print(len(tables))
+table_html = tables[0].metadata.text_as_html
+print(table_html)
+
+# prep data for the Vector DB
 documents = []
-for element in pdf_elements:
+for element in elements:
     metadata = element.metadata.to_dict()
     del metadata["languages"]
     metadata["source"] = metadata["filename"]
     documents.append(Document(page_content=element.text, metadata=metadata))
 
-# Filter out elements with complex metadata that are not useful for the vector store
-documents = filter_complex_metadata(documents)
-
 embeddings = OpenAIEmbeddings()
 
-vectorstore = Chroma.from_documents(documents, embeddings)
+vectorstore = Chroma.from_documents(documents,
+                                    embeddings)
 
-query = "Whats the revenue for Q1 FY25?"
+retriever = vectorstore.as_retriever(
+    search_type="similarity",
+    search_kwargs={"k": 3}
+)
 
-retriever = vectorstore.as_retriever()
+query = "Whats the basic net income per share for the three months ended April 28, 2024?"
 
-result = retriever.invoke(query, k=3)
+result = retriever.invoke(query)
 
-print("response from the retriever", result)
+print("from the vector store", result)
 
 template = """Answer the question based only on the following context, which can include text and tables:
 {context}
@@ -83,13 +92,14 @@ model = ChatOpenAI(temperature=0,
 
 # RAG pipeline
 chain = (
-        {"context": retriever, "question": RunnablePassthrough()}
+        {"context": retriever,
+         "question": RunnablePassthrough()}
         | prompt
         | model
         | StrOutputParser()
 )
 
-query = "Whats the revenue for Q1 FY25?"
-
 response = chain.invoke(query)
 print("response from the chain", response)
+
+
