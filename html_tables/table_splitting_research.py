@@ -4,12 +4,15 @@ from langchain_community.vectorstores import Chroma
 from langchain_core.documents import Document
 import warnings
 from dotenv import load_dotenv
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 warnings.filterwarnings('ignore')
 _ = load_dotenv()
 
 # Load HTML content from a file
 file_path = '../docs/nvidia_financial_results_q1_fiscal_2025.html'
+
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=4096, chunk_overlap=200)
 
 with open(file_path, 'r', encoding='utf-8') as file:
     html_content = file.read()
@@ -47,11 +50,13 @@ for tag, content in headers.items():
 
 for idx, table in enumerate(tables):
     for row in table:
-        text_to_embed.append(row)
-
-# remove tab characters and new lines
-text_to_embed = [[cell.replace('\t', '').replace('\n', '') for cell in row]
-                 for row in text_to_embed]
+        # remove tab characters and new lines characters from the row
+        row = [cell.replace('\t', '').replace('\n', '') for cell in row]
+        # create a string from the row
+        row = ' '.join(row)
+        # if the row is large then split it into smaller chunks to avoid hitting the OpenAI API limit
+        splits = text_splitter.split_text(row)
+        text_to_embed.append(splits)
 
 documents = []
 for text in text_to_embed:
