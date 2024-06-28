@@ -45,10 +45,13 @@ text_to_embed = [plain_text]
 for tag, content in headers.items():
     text_to_embed.append(content)
 
-# Display the extracted tables and rows
 for idx, table in enumerate(tables):
     for row in table:
         text_to_embed.append(row)
+
+# remove tab characters and new lines
+text_to_embed = [[cell.replace('\t', '').replace('\n', '') for cell in row]
+                 for row in text_to_embed]
 
 documents = []
 for text in text_to_embed:
@@ -57,6 +60,11 @@ for text in text_to_embed:
     # check if the text is not empty or not None
     if text and text != 'None':
         documents.append(Document(page_content=text))
+
+# loop through the documents and remove any None values
+for document in documents:
+    if document.page_content is None:
+        documents.remove(document)
 
 embeddings = OpenAIEmbeddings()
 
