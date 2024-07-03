@@ -1,30 +1,14 @@
 from bs4 import BeautifulSoup
-from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import Chroma
 from langchain_core.documents import Document
-import warnings
-from dotenv import load_dotenv
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-
-warnings.filterwarnings('ignore')
-_ = load_dotenv()
 
 # Load HTML content from a file
-file_path = '../docs/nvidia_financial_results_q1_fiscal_2025.html'
-
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=4096, chunk_overlap=200)
+file_path = 'nested_table.html'
 
 with open(file_path, 'r', encoding='utf-8') as file:
     html_content = file.read()
 
 # Parse the HTML content
 soup = BeautifulSoup(html_content, 'html.parser')
-
-# Extract plain text (ignoring script and style content)
-for script_or_style in soup(['script', 'style']):
-    script_or_style.extract()
-
-plain_text = soup.get_text(separator=' ', strip=True)
 
 # Extract headers
 headers = {}
@@ -52,11 +36,8 @@ for idx, table in enumerate(tables):
     for row in table:
         # remove tab characters and new lines characters from the row
         row = [cell.replace('\t', '').replace('\n', '') for cell in row]
-        # create a string from the row
-        row = ' '.join(row)
         # if the row is large then split it into smaller chunks to avoid hitting the OpenAI API limit
-        splits = text_splitter.split_text(row)
-        text_to_embed.append(splits)
+        text_to_embed.append(row)
 
 documents = []
 for text in text_to_embed:
@@ -71,14 +52,6 @@ for document in documents:
     if document.page_content is None:
         documents.remove(document)
 
-embeddings = OpenAIEmbeddings()
-
-vectorstore = Chroma.from_documents(documents, embeddings)
-
-query = "$2,501"
-
-retriever = vectorstore.as_retriever()
-result = retriever.invoke(query, k=4)
-
-for i in range(len(result)):
-    print(result[i])
+# print the content of the table
+for document in documents:
+    print(document.page_content)

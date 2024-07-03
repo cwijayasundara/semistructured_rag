@@ -45,24 +45,24 @@ result = retriever.invoke(query, k=4)
 
 print(result)
 
-template = """Answer the question based only on the following context, which can include text and tables:
-{context}
-Question: {question}
-"""
-prompt = ChatPromptTemplate.from_template(template)
-
-model = ChatOpenAI(temperature=0,
-                   model="gpt-4o")
-
-# RAG pipeline
-chain = (
-        {"context": retriever, "question": RunnablePassthrough()}
-        | prompt
-        | model
-        | StrOutputParser()
-)
-
-query = "Whats the basic net income per share for the three months ended April 28, 2024?"
-
-response = chain.invoke(query)
-print(response)
+# template = """Answer the question based only on the following context, which can include text and tables:
+# {context}
+# Question: {question}
+# """
+# prompt = ChatPromptTemplate.from_template(template)
+#
+# model = ChatOpenAI(temperature=0,
+#                    model="gpt-4o")
+#
+# # RAG pipeline
+# chain = (
+#         {"context": retriever, "question": RunnablePassthrough()}
+#         | prompt
+#         | model
+#         | StrOutputParser()
+# )
+#
+# query = "Whats the basic net income per share for the three months ended April 28, 2024?"
+#
+# response = chain.invoke(query)
+# print(response)
