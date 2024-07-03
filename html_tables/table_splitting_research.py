@@ -75,7 +75,7 @@ embeddings = OpenAIEmbeddings()
 
 vectorstore = Chroma.from_documents(documents, embeddings)
 
-query = "$2,501"
+query = "$2,210"
 
 retriever = vectorstore.as_retriever()
 result = retriever.invoke(query, k=4)
